@@ -1,0 +1,144 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "mirror-mbti/session.schema.json",
+  "title": "MirrorMBTI Session",
+  "description": "자기 객관화 MBTI 앱이 내보내고, 킬 페르소나 패널이 impression/gap을 채워 되돌려주는 세션 문서",
+  "type": "object",
+  "required": ["schemaVersion", "sessionId", "createdAt", "self", "clips"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "1.0" },
+    "sessionId": { "type": "string", "format": "uuid" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "self": { "$ref": "#/definitions/axes" },
+    "clips": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/clip" }
+    },
+    "impression": {
+      "description": "킬 페르소나 패널이 채움. 앱 내보내기 시점에는 null",
+      "oneOf": [{ "type": "null" }, { "$ref": "#/definitions/impression" }]
+    },
+    "gap": {
+      "description": "impression 수신 후 앱 또는 킬이 계산. 내보내기 시점에는 null",
+      "oneOf": [{ "type": "null" }, { "$ref": "#/definitions/gap" }]
+    }
+  },
+  "definitions": {
+    "axes": {
+      "type": "object",
+      "description": "0=E/S/T/J, 100=I/N/F/P",
+      "required": ["EI", "SN", "TF", "JP"],
+      "additionalProperties": false,
+      "properties": {
+        "EI": { "type": "number", "minimum": 0, "maximum": 100 },
+        "SN": { "type": "number", "minimum": 0, "maximum": 100 },
+        "TF": { "type": "number", "minimum": 0, "maximum": 100 },
+        "JP": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "emotion": { "type": "string", "enum": ["neutral", "happy", "angry", "surprised", "sad"] },
+    "tone": { "type": "string", "enum": ["neutral", "happy", "angry"] },
+    "emotionProbs": {
+      "type": "object",
+      "required": ["neutral", "happy", "angry", "surprised", "sad"],
+      "additionalProperties": false,
+      "properties": {
+        "neutral": { "type": "number", "minimum": 0, "maximum": 1 },
+        "happy": { "type": "number", "minimum": 0, "maximum": 1 },
+        "angry": { "type": "number", "minimum": 0, "maximum": 1 },
+        "surprised": { "type": "number", "minimum": 0, "maximum": 1 },
+        "sad": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "headPose": {
+      "type": "object",
+      "required": ["yaw", "pitch", "roll"],
+      "additionalProperties": false,
+      "properties": {
+        "yaw": { "type": "number" },
+        "pitch": { "type": "number" },
+        "roll": { "type": "number" }
+      }
+    },
+    "voice": {
+      "type": "object",
+      "required": ["f0Mean", "f0Std", "f0Range", "rmsMean", "speechRate", "pauseRatio", "readTone"],
+      "additionalProperties": false,
+      "properties": {
+        "f0Mean": { "type": "number" },
+        "f0Std": { "type": "number" },
+        "f0Range": { "type": "number" },
+        "rmsMean": { "type": "number" },
+        "speechRate": { "type": "number" },
+        "pauseRatio": { "type": "number", "minimum": 0, "maximum": 1 },
+        "readTone": { "$ref": "#/definitions/tone" }
+      }
+    },
+    "clip": {
+      "type": "object",
+      "required": ["id", "kind", "intended", "read", "genuineSmile", "headPose", "voice", "llmImpression", "mediaRef"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "kind": { "type": "string", "enum": ["expression", "speech"] },
+        "intended": {
+          "description": "expression이면 emotion, speech면 tone. 옆모습 클립은 'n/a'",
+          "type": "string",
+          "enum": ["neutral", "happy", "angry", "surprised", "sad", "n/a"]
+        },
+        "sentence": { "type": "string", "description": "speech 클립의 낭독 문장" },
+        "read": { "oneOf": [{ "type": "null" }, { "$ref": "#/definitions/emotionProbs" }] },
+        "genuineSmile": { "type": ["boolean", "null"] },
+        "headPose": { "oneOf": [{ "type": "null" }, { "$ref": "#/definitions/headPose" }] },
+        "voice": { "oneOf": [{ "type": "null" }, { "$ref": "#/definitions/voice" }] },
+        "llmImpression": { "type": ["string", "null"] },
+        "mediaRef": {
+          "type": ["string", "null"],
+          "description": "zip 내 파일명. 미디어 미포함 내보내기면 null"
+        }
+      }
+    },
+    "rater": {
+      "type": "object",
+      "description": "킬 페르소나 1명의 평가",
+      "required": ["raterId", "axes"],
+      "additionalProperties": false,
+      "properties": {
+        "raterId": { "type": "string" },
+        "persona": { "type": "string", "description": "이름·국적 등 표시용 메타" },
+        "axes": { "$ref": "#/definitions/axes" },
+        "comment": { "type": "string" }
+      }
+    },
+    "impression": {
+      "type": "object",
+      "required": ["axes", "raters", "ratedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "axes": { "description": "raters의 축별 평균", "$ref": "#/definitions/axes" },
+        "raters": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/rater" } },
+        "ratedAt": { "type": "string", "format": "date-time" },
+        "source": { "type": "string", "description": "예: kil-persona-panel" }
+      }
+    },
+    "gap": {
+      "type": "object",
+      "required": ["axes", "objectivityIndex"],
+      "additionalProperties": false,
+      "properties": {
+        "axes": {
+          "description": "축별 abs(self - impression.axes)",
+          "$ref": "#/definitions/axes"
+        },
+        "objectivityIndex": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "100 - mean(gap.axes)"
+        }
+      }
+    }
+  }
+}

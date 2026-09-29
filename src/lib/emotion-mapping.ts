@@ -155,7 +155,7 @@ export function detectGenuineSmile(samples: FaceSample[], durationMs: number, ba
   const d = s.map((x) => subtractBaseline(x.bs, baseline));
   const smile = median(d.map((x) => pair(x, 'mouthSmile')));
   const cheek = median(d.map((x) => pair(x, 'cheekSquint')));
-  if (smile < MIN_SMILE_FOR_GENUINE) return false;
+  if (smile < MIN_SMILE_FOR_GENUINE) return null;
   return cheek >= GENUINE_SMILE_RATIO * smile;
 }
 

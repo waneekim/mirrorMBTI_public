@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { computeBaseline, type Blendshapes } from '../../lib/emotion-mapping';
+import { scoreSurvey, type Axes } from '../../lib/mbti-scoring';
+import { SURVEY_ITEMS } from '../survey/items.ko';
 import { BASELINE_CLIP_ID, deriveFaceResults, type FaceAnalysis, type FaceResult } from '../face/derive';
 import { clipRepo, type ClipMeta, type StoredClip } from './db';
 
@@ -12,6 +14,11 @@ interface SessionState {
   face: Record<string, FaceResult>;
   /** Personal baseline from the neutral clip, used by the live overlay. */
   baseline: Blendshapes | null;
+  /** Likert answers by item id. */
+  answers: Record<string, number>;
+  /** Self-assessed axes; null until all 32 items are answered. */
+  self: Axes | null;
+  setAnswer: (itemId: string, value: number) => Promise<void>;
   hydrate: () => Promise<void>;
   saveClip: (clip: StoredClip) => Promise<void>;
   saveFaceAnalysis: (analysis: FaceAnalysis) => Promise<void>;
@@ -27,17 +34,26 @@ async function refreshFace(): Promise<Pick<SessionState, 'face' | 'baseline'>> {
   return { face, baseline: neutral ? computeBaseline(neutral.samples, neutral.durationMs) : null };
 }
 
-export const useSessionStore = create<SessionState>((set) => ({
+export const useSessionStore = create<SessionState>((set, get) => ({
   loadState: 'idle',
   clips: {},
   face: {},
   baseline: null,
+  answers: {},
+  self: null,
 
   async hydrate() {
     set({ loadState: 'loading' });
     try {
       const metas = await clipRepo.listMeta();
-      set({ clips: Object.fromEntries(metas.map((m) => [m.id, m])), ...(await refreshFace()), loadState: 'ready' });
+      const answers = await clipRepo.getSurveyAnswers();
+      set({
+        clips: Object.fromEntries(metas.map((m) => [m.id, m])),
+        ...(await refreshFace()),
+        answers,
+        self: scoreSurvey(SURVEY_ITEMS, answers),
+        loadState: 'ready',
+      });
     } catch (err) {
       console.error('Failed to restore clips from IndexedDB', err);
       set({ loadState: 'error' });
@@ -55,8 +71,14 @@ export const useSessionStore = create<SessionState>((set) => ({
     set(await refreshFace());
   },
 
+  async setAnswer(itemId, value) {
+    const answers = { ...get().answers, [itemId]: value };
+    set({ answers, self: scoreSurvey(SURVEY_ITEMS, answers) });
+    await clipRepo.saveSurveyAnswers(answers);
+  },
+
   async deleteSession() {
     await clipRepo.clearAll();
-    set({ clips: {}, face: {}, baseline: null });
+    set({ clips: {}, face: {}, baseline: null, answers: {}, self: null });
   },
 }));

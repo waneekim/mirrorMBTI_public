@@ -8,6 +8,7 @@ import { GuideCard, type RecordPhase } from './GuideCard';
 import { PermissionGate } from './PermissionGate';
 import { CLIP_DURATION_MS, COUNTDOWN_SECONDS, getClipSpec, nextPendingAfter, nextPendingClip, PROTOCOL } from './protocol';
 import { recordClip } from './recorder';
+import { captureThumb } from './thumbnail';
 import { useSessionStore } from './store';
 import { useMediaStream } from './useMediaStream';
 import { useWakeLock } from './useWakeLock';
@@ -82,8 +83,12 @@ export function StudioPage() {
       }
       setPhase('recording');
       face.startCollect();
+      const thumbPromise = new Promise<Blob | null>((resolve) =>
+        setTimeout(() => resolve(captureThumb(videoRef.current)), CLIP_DURATION_MS / 2),
+      );
       const media = await recordClip(stream, CLIP_DURATION_MS, ctrl.signal).finally(() => (samples = face.stopCollect()));
       setPhase('saving');
+      const thumb = await thumbPromise;
       await saveClip({
         id: spec.id,
         kind: spec.kind,
@@ -91,6 +96,7 @@ export function StudioPage() {
         ...(spec.sentence ? { sentence: spec.sentence } : {}),
         recordedAt: new Date().toISOString(),
         ...media,
+        ...(thumb ? { thumb } : {}),
       });
       // Face series sampled at 10 fps during recording; results are derived against the neutral baseline.
       await saveFaceAnalysis({

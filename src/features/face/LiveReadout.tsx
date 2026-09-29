@@ -1,6 +1,6 @@
-import { EMOTIONS, topEmotion } from '../../lib/emotion-mapping';
+import { topEmotion } from '../../lib/emotion-mapping';
 import type { ClipSpec } from '../recording/protocol';
-import { EMOTION_COLOR, EMOTION_LABEL } from './labels';
+import { EMOTION_DISPLAY_ORDER, EMOTION_HEX, EMOTION_LABEL } from './labels';
 import type { LandmarkerStatus } from './landmarker';
 import type { LiveRead } from './useFaceTracking';
 
@@ -38,10 +38,13 @@ export function LiveReadout({ status, live, hasBaseline, framing }: Props) {
         {!hasBaseline && <span className="ml-1 text-slate-400">(기준선 촬영 전 · 참고용)</span>}
       </p>
       <div className="grid grid-cols-5 gap-1.5">
-        {EMOTIONS.map((e) => (
+        {EMOTION_DISPLAY_ORDER.map((e) => (
           <div key={e} className="flex flex-col items-center gap-0.5">
             <div className="flex h-8 w-full items-end overflow-hidden rounded bg-slate-800">
-              <div className={`w-full ${EMOTION_COLOR[e]} transition-[height] duration-100`} style={{ height: `${live.probs![e] * 100}%` }} />
+              <div
+                className="w-full rounded-t transition-[height] duration-100"
+                style={{ height: `${live.probs![e] * 100}%`, background: EMOTION_HEX[e] }}
+              />
             </div>
             <span className={e === top ? 'text-white' : 'text-slate-400'}>{EMOTION_LABEL[e]}</span>
           </div>

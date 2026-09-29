@@ -11,6 +11,7 @@ import { useSessionStore } from './store';
 export function ClipListPage() {
   const clips = useSessionStore((s) => s.clips);
   const face = useSessionStore((s) => s.face);
+  const selfDone = useSessionStore((s) => s.self !== null);
   const saveFaceAnalysis = useSessionStore((s) => s.saveFaceAnalysis);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState<string | null>(null);
@@ -97,9 +98,13 @@ export function ClipListPage() {
         </section>
       ))}
 
-      {done < PROTOCOL.length && (
+      {done < PROTOCOL.length ? (
         <Link to="/studio" className="mt-6 block rounded-full bg-sky-500 py-3 text-center font-medium text-white">
           이어서 촬영하기
+        </Link>
+      ) : (
+        <Link to={selfDone ? '/report' : '/survey'} className="mt-6 block rounded-full bg-sky-500 py-3 text-center font-medium text-white">
+          {selfDone ? '리포트 보기' : '다음: 자기평가 설문'}
         </Link>
       )}
 

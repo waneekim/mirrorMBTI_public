@@ -150,8 +150,8 @@ describe('detectGenuineSmile', () => {
     expect(detectGenuineSmile(clip(polite), 3000, REST)).toBe(false);
   });
 
-  it('false when there is barely a smile, null without frames', () => {
-    expect(detectGenuineSmile(clip(REST), 3000, REST)).toBe(false);
+  it('undetermined (null) when there is barely a smile or no frames', () => {
+    expect(detectGenuineSmile(clip(REST), 3000, REST)).toBeNull();
     expect(detectGenuineSmile([], 3000, REST)).toBeNull();
   });
 });

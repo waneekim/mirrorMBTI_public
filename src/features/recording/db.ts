@@ -11,9 +11,17 @@ export interface StoredClip {
   mimeType: string;
   durationMs: number;
   blob: Blob;
+  /** Small JPEG frame from mid-clip for the report. */
+  thumb?: Blob;
 }
 
 export type ClipMeta = Omit<StoredClip, 'blob'>;
+
+export interface StoredSurvey {
+  id: 'self';
+  answers: Record<string, number>;
+  updatedAt: string;
+}
 
 /** Raw face series plus the derived clip results (`read`, `genuineSmile`, `headPose`). */
 export interface StoredFaceAnalysis extends FaceAnalysis {
@@ -23,11 +31,13 @@ export interface StoredFaceAnalysis extends FaceAnalysis {
 export class MirrorDB extends Dexie {
   clips!: Table<StoredClip, string>;
   faceAnalyses!: Table<StoredFaceAnalysis, string>;
+  survey!: Table<StoredSurvey, string>;
 
   constructor(name = 'mirror-mbti') {
     super(name);
     this.version(1).stores({ clips: 'id, kind, recordedAt' });
     this.version(2).stores({ faceAnalyses: 'id' });
+    this.version(3).stores({ survey: 'id' });
   }
 }
 
@@ -49,10 +59,17 @@ export function createClipRepository(db: MirrorDB) {
       return db.clips.delete(id);
     },
     clearAll(): Promise<void> {
-      return db.transaction('rw', db.clips, db.faceAnalyses, async () => {
+      return db.transaction('rw', [db.clips, db.faceAnalyses, db.survey], async () => {
         await db.clips.clear();
         await db.faceAnalyses.clear();
+        await db.survey.clear();
       });
+    },
+    async getSurveyAnswers(): Promise<Record<string, number>> {
+      return (await db.survey.get('self'))?.answers ?? {};
+    },
+    saveSurveyAnswers(answers: Record<string, number>): Promise<string> {
+      return db.survey.put({ id: 'self', answers, updatedAt: new Date().toISOString() });
     },
     saveFaceAnalysis(a: StoredFaceAnalysis): Promise<string> {
       return db.faceAnalyses.put(a);

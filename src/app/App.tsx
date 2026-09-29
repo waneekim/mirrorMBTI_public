@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { ClipListPage } from '../features/recording/ClipListPage';
 import { StudioPage } from '../features/recording/StudioPage';
+import { ReportPage } from '../features/report/ReportPage';
+import { SurveyPage } from '../features/survey/SurveyPage';
 import { useSessionStore } from '../features/recording/store';
 import { HomePage } from './HomePage';
 import { Layout } from './Layout';
@@ -14,6 +16,8 @@ const router = createBrowserRouter(
         { path: '/', element: <HomePage /> },
         { path: '/studio', element: <StudioPage /> },
         { path: '/clips', element: <ClipListPage /> },
+        { path: '/survey', element: <SurveyPage /> },
+        { path: '/report', element: <ReportPage /> },
       ],
     },
   ],

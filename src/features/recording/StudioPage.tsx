@@ -26,6 +26,7 @@ export function StudioPage() {
   const clips = useSessionStore((s) => s.clips);
   const saveClip = useSessionStore((s) => s.saveClip);
   const saveFaceAnalysis = useSessionStore((s) => s.saveFaceAnalysis);
+  const analyzeVoice = useSessionStore((s) => s.analyzeVoice);
   const baseline = useSessionStore((s) => s.baseline);
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -106,6 +107,8 @@ export function StudioPage() {
         samples: samples ?? [],
         analyzedAt: new Date().toISOString(),
       });
+      // Prosody runs in the background so the next clip can start right away.
+      if (spec.kind === 'speech') void analyzeVoice(spec.id);
       setPhase('ready');
       if (retakeId) {
         navigate('/clips');

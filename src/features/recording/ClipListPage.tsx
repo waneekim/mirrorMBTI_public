@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { analyzeBlob } from '../face/analyze-blob';
 import { ClipFaceSummary } from '../face/ClipFaceSummary';
 import { statusForSamples } from '../face/derive';
+import { ClipVoiceSummary } from '../voice/ClipVoiceSummary';
 import { ClipPreview } from './ClipPreview';
 import { clipRepo } from './db';
 import { PROTOCOL, TONE_LABEL, type Tone } from './protocol';
@@ -11,6 +12,7 @@ import { useSessionStore } from './store';
 export function ClipListPage() {
   const clips = useSessionStore((s) => s.clips);
   const face = useSessionStore((s) => s.face);
+  const voice = useSessionStore((s) => s.voice);
   const selfDone = useSessionStore((s) => s.self !== null);
   const saveFaceAnalysis = useSessionStore((s) => s.saveFaceAnalysis);
   const [previewId, setPreviewId] = useState<string | null>(null);
@@ -70,7 +72,7 @@ export function ClipListPage() {
                       {c.sentence ?? c.guide}
                     </p>
                     <p className="text-xs leading-snug text-slate-500">
-                      {meta ? <ClipFaceSummary spec={c} result={face[c.id]} /> : '아직 촬영하지 않음'}
+                      {!meta ? '아직 촬영하지 않음' : c.kind === 'speech' ? <ClipVoiceSummary spec={c} result={voice[c.id]} /> : <ClipFaceSummary spec={c} result={face[c.id]} />}
                     </p>
                   </div>
                   {meta && c.kind === 'expression' && (!face[c.id] || face[c.id].status === 'unavailable' || face[c.id].status === 'noface') && (

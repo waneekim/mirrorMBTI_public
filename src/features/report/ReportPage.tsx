@@ -8,6 +8,7 @@ import { SURVEY_ITEMS } from '../survey/items.ko';
 import { AxisBar } from './AxisBar';
 import { DeliveryRow } from './DeliveryRow';
 import { Section } from './Section';
+import { ToneSection } from './ToneSection';
 
 /** `?impression=40,45,55,50` injects example panel values to preview the gap section. */
 function parseMockImpression(raw: string | null): Axes | null {
@@ -62,7 +63,6 @@ export function ReportPage() {
   const deliveries = expressionDelivery(expressionSpecs.map((c) => ({ id: c.id, intended: c.intended, read: face[c.id]?.read ?? null })));
   const risk = misreadRisk(face.neutral?.read ?? null);
   const smile = face.smile?.genuineSmile ?? null;
-  const speechCount = PROTOCOL.filter((c) => c.kind === 'speech' && clips[c.id]).length;
   const gap = axisGap(self, impression);
 
   return (
@@ -113,9 +113,7 @@ export function ReportPage() {
         )}
       </Section>
 
-      <Section title="톤 전달도" subtitle="낭독에서 의도한 말투가 그대로 전달되는지" muted>
-        <p className="text-sm text-slate-400">음성 분석은 준비 중입니다. 촬영한 낭독 클립 {speechCount}/6개는 분석이 준비되면 자동으로 반영됩니다.</p>
-      </Section>
+      <ToneSection />
 
       <Section title="스스로 생각하는 나" subtitle="자기평가 설문 결과 (공식 MBTI 검사가 아닙니다)">
         {self ? (

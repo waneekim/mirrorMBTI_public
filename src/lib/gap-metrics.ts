@@ -1,8 +1,7 @@
 // Report metrics (CLAUDE.md §8). Pure functions only.
 import { EMOTIONS, type Emotion, type EmotionProbs } from './emotion-mapping';
 import { AXES, type Axes } from './mbti-scoring';
-
-export type Tone = 'neutral' | 'happy' | 'angry';
+import type { Tone } from './prosody';
 
 export interface ExpressionClipInput {
   id: string;

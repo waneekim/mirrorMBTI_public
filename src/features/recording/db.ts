@@ -1,5 +1,6 @@
 import Dexie, { type Table } from 'dexie';
 import type { FaceAnalysis, FaceResult } from '../face/derive';
+import type { VoiceAnalysis, VoiceResult } from '../voice/derive';
 import type { ClipKind, Intended } from './protocol';
 
 export interface StoredClip {
@@ -17,6 +18,11 @@ export interface StoredClip {
 
 export type ClipMeta = Omit<StoredClip, 'blob'>;
 
+/** Raw prosody features plus the derived tone (`voice.readTone`). */
+export interface StoredVoiceAnalysis extends VoiceAnalysis {
+  result?: VoiceResult;
+}
+
 export interface StoredSurvey {
   id: 'self';
   answers: Record<string, number>;
@@ -32,12 +38,14 @@ export class MirrorDB extends Dexie {
   clips!: Table<StoredClip, string>;
   faceAnalyses!: Table<StoredFaceAnalysis, string>;
   survey!: Table<StoredSurvey, string>;
+  voiceAnalyses!: Table<StoredVoiceAnalysis, string>;
 
   constructor(name = 'mirror-mbti') {
     super(name);
     this.version(1).stores({ clips: 'id, kind, recordedAt' });
     this.version(2).stores({ faceAnalyses: 'id' });
     this.version(3).stores({ survey: 'id' });
+    this.version(4).stores({ voiceAnalyses: 'id' });
   }
 }
 
@@ -59,10 +67,22 @@ export function createClipRepository(db: MirrorDB) {
       return db.clips.delete(id);
     },
     clearAll(): Promise<void> {
-      return db.transaction('rw', [db.clips, db.faceAnalyses, db.survey], async () => {
+      return db.transaction('rw', [db.clips, db.faceAnalyses, db.voiceAnalyses, db.survey], async () => {
         await db.clips.clear();
         await db.faceAnalyses.clear();
+        await db.voiceAnalyses.clear();
         await db.survey.clear();
+      });
+    },
+    saveVoiceAnalysis(a: StoredVoiceAnalysis): Promise<string> {
+      return db.voiceAnalyses.put(a);
+    },
+    listVoiceAnalyses(): Promise<StoredVoiceAnalysis[]> {
+      return db.voiceAnalyses.toArray();
+    },
+    async saveVoiceResults(results: Record<string, VoiceResult>): Promise<void> {
+      await db.transaction('rw', db.voiceAnalyses, async () => {
+        for (const [id, result] of Object.entries(results)) await db.voiceAnalyses.update(id, { result });
       });
     },
     async getSurveyAnswers(): Promise<Record<string, number>> {
